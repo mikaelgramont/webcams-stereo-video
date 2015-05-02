@@ -12,7 +12,7 @@
 		}
 		textarea {
 			display: block;
-			height: 200px;
+			height: 100px;
 			width: 750px;
 		}
 	</style>
@@ -44,8 +44,7 @@
 			document.getElementById('video0'),
 			document.getElementById('video1')
 		],
-		streams = []
-		videoSources = [],
+		streams = [],
 		constraints = [];
 
 	function init() {
@@ -79,44 +78,70 @@
 		});
 	}
 
+	// Returns an array of the two identical webcam ids
+	function getIdenticalVideoSourceIds(videoSources) {
+		for(entry in videoSources) {
+			if (entry.length == 2) {
+				return entry;
+			}
+		}
+
+		// Could not find two identical cameras. Default to returning whatever's there.
+		var defaultReturn = [];
+		for(entry in videoSources) {
+			defaultReturn.push(videoSources[entry][0]);
+		}
+		console.log("No two identical cameras were found. Returning default", defaultReturn);
+		return defaultReturn;
+	}
+
 	function gotSources(sourceInfos) {
-	  for (var i = 0; i !== sourceInfos.length; ++i) {
-	    var sourceInfo = sourceInfos[i];
-	    var output = [];
-	    output.push('id: '+ sourceInfo.id);
-    	output.push('kind: '+ sourceInfo.kind);
-    	output.push('label: '+ sourceInfo.label);
-	    if (sourceInfo.kind === 'video') {
-	      videoSources.push(sourceInfo.id)
-	    }
-	    sourcesLog.value += output.join(' - ') + '\n';
-	  }
+		var videoSources = {};
+		for (var i = 0; i !== sourceInfos.length; ++i) {
+			var sourceInfo = sourceInfos[i];
+			var output = [];
+			output.push('id: '+ sourceInfo.id);
+			output.push('kind: '+ sourceInfo.kind);
+			output.push('label: '+ sourceInfo.label);
+			if (sourceInfo.kind === 'video') {
+				if (!videoSources[sourceInfo.label]) {
+					videoSources[sourceInfo.label] = [sourceInfo.id];
+				} else {
+					videoSources[sourceInfo.label].push(sourceInfo.id);
+				}
+			}
+			sourcesLog.value += output.join(' - ') + '\n';
+		}
+
+		var sourceIds = getIdenticalVideoSourceIds(videoSources);
+
+
 		constraints = [{
-		  video: {
-		    mandatory: {
-		      minWidth: 320,
-		      minHeight: 240,
-		      minFrameRate: 30,
-		      sourceId: videoSources[0]
-		    },
-		    optional: [
-		      { minFrameRate: 60 }
-		    ]
-		  },
-		  audio: false
+			video: {
+				mandatory: {
+					minWidth: 320,
+					minHeight: 240,
+					minFrameRate: 30,
+					sourceId: sourceIds[0]
+				},
+				optional: [
+				{ minFrameRate: 60 }
+				]
+			},
+			audio: false
 		}, {
-		  video: {
-		    mandatory: {
-		      minWidth: 320,
-		      minHeight: 240,
-		      minFrameRate: 30,
-		      sourceId: videoSources[1]
-		    },
-		    optional: [
-		      { minFrameRate: 60 }
-		    ]
-		  },
-		  audio: false
+			video: {
+				mandatory: {
+					minWidth: 320,
+					minHeight: 240,
+					minFrameRate: 30,
+					sourceId: sourceIds[1]
+				},
+				optional: [
+				{ minFrameRate: 60 }
+				]
+			},
+			audio: false
 		}];
 	}
 
