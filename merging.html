@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Merging</title>
+	<style>
+		video,
+		canvas {
+			margin: 15px;
+		}
+		video {
+			width: 320px;
+			height: 240px;
+			outline: 1px solid red;
+			display: inline-block;
+		}
+		canvas {
+			outline: 1px solid blue;
+		}
+		canvas.merged {
+			width: 320px;
+			height: 240px;
+			outline: 1px solid green;
+		}
+		textarea {
+			display: block;
+			height: 100px;
+			width: 750px;
+		}
+	</style>
+</head>
+<body>
+
+<div>
+	<button id="start-acq">Start acquisition</button>
+	<button id="stop-acq">Stop acquisition</button>
+	<button id="start-merge">Start merging</button>
+	<button id="stop-merge">Stop merging</button>
+	<textarea id="sources-log"></textarea>
+</div>
+
+
+<canvas id="merge" class="merged" width="320" height="240"></canvas>
+<div>
+	<video id="video0" autoplay></video>
+	<video id="video1" autoplay></video>
+	<canvas id="canvas0" width="240" height="320"></canvas>
+	<canvas id="canvas1" width="240" height="320"></canvas>
+</div>
+
+<script>
+// (function() {
+	navigator.getUserMedia = navigator.getUserMedia ||
+	                         navigator.webkitGetUserMedia ||
+	                         navigator.mozGetUserMedia;
+	if (!navigator.getUserMedia) {
+		throw new Error("getUserMedia not supported");
+	}
+
+	var w = 320,
+		h = 240,
+		sourcesLog = document.getElementById('sources-log'),
+		startAcqEl = document.getElementById('start-acq'),
+		stopAcqEl = document.getElementById('stop-acq'),
+		startMergeEl = document.getElementById('start-merge'),
+		stopMergeEl = document.getElementById('stop-merge'),
+		isMerging = false,
+		rafId = null,
+		merge = document.getElementById('merge'),
+		mergeContext = merge.getContext('2d'),
+		videos = [
+			document.getElementById('video0'),
+			document.getElementById('video1')
+		],
+		canvases = [
+			document.getElementById('canvas0'),
+			document.getElementById('canvas1')
+		],
+		contexts = [
+			canvases[0].getContext('2d'),
+			canvases[1].getContext('2d'),
+		],
+		streams = [],
+		constraints = [];
+	
+	function init() {
+		if (typeof MediaStreamTrack === 'undefined' ||
+		    typeof MediaStreamTrack.getSources === 'undefined') {
+		  alert('This browser does not support MediaStreamTrack.\n\nTry Chrome.');
+		} else {
+		  MediaStreamTrack.getSources(gotSources);
+		}
+		startAcqEl.addEventListener('click', startAcquisition);
+		stopAcqEl.addEventListener('click', stopAcquisition);
+		startMergeEl.addEventListener('click', startMerging);
+		stopMergeEl.addEventListener('click', stopMerging);
+	}
+
+	function startAcquisition() {
+		videos.forEach(function(video, index) {
+		   navigator.getUserMedia(constraints[index],
+		      function(stream) {
+		         video.src = window.URL.createObjectURL(stream);
+		         streams[index] = stream;
+		      },
+		      function(err) {
+		         console.log("The following error occured: " + err.name);
+		      }
+		   );
+		});
+	}
+
+	function stopAcquisition() {
+		streams.forEach(function(stream) {
+			stream.stop();
+		});
+	}
+
+	function startMerging() {
+		console.log('startMerging');
+		isMerging = true;
+		rafId = requestAnimationFrame(onFrame);
+		
+		// contexts[1].rotate(Math.PI/2);
+	}
+
+	function stopMerging() {
+		console.log('stopMerging');
+		isMerging = false;
+		cancelAnimationFrame(rafId);
+		rafId = null
+	}
+
+	function onFrame() {
+		rafId = requestAnimationFrame(onFrame);
+		// console.log('onFrame');
+
+		// TODO: do the merging here:
+		// grab each video, rotate it by the appropriate angle (+/- 90 deg)
+		// paste it into the right spot in the canvas
+		for(var i = 0; i < videos.length; i++) {
+			var angle = Math.pow(-1, i % 2) * Math.PI/2;
+			var offsetX = w / 2;
+            // mergeContext.putImageData(frame, x*(w/tiles+gap), y*(h/tiles+gap), x*w/tiles, y*h/tiles, w/tiles, h/tiles);
+			// contexts[i].rotate(angle);
+			var startX = w / 4,
+				targetStartX;
+			if (i == 0) {
+				targetStartX = 0;
+			} else {
+				targetStartX = w / 2;
+			}
+			contexts[i].drawImage(videos[i], 0, 0, w, h);	
+			// mergeContext.putImageData(frame, startX, 0, targetStartX, 0, w/2, h);
+			if (i == 0){
+				var frame = contexts[i].getImageData(w/4, 0, w*0.75, h);
+				mergeContext.putImageData(frame, 0, 0);
+				// mergeContext.rotate(Math.PI/2);
+			}
+			if (i == 1){
+				var frame = contexts[i].getImageData(w/4, 0, w*0.75, h);
+				mergeContext.putImageData(frame, w/2, 0);
+				// mergeContext.rotate(Math.PI/2);
+			}
+
+		}
+		
+        
+	}
+
+	// Returns an array of the two identical webcam ids
+	function getIdenticalVideoSourceIds(videoSources) {
+		for(entry in videoSources) {
+			if (entry.length == 2) {
+				return entry;
+			}
+		}
+
+		// Could not find two identical cameras. Default to returning whatever's there.
+		var defaultReturn = [];
+		for(entry in videoSources) {
+			defaultReturn.push(videoSources[entry].id);
+		}
+		console.log("No two identical cameras were found. Returning default", defaultReturn);
+		return defaultReturn;
+	}
+
+	function gotSources(sourceInfos) {
+		var videoSources = sourceInfos.filter(function(source) {
+			return source.kind == 'video';
+		});
+		sourcesLog.value = JSON.stringify(videoSources);
+		console.log("videoSources", videoSources);
+		var sourceIds = getIdenticalVideoSourceIds(videoSources);
+
+		constraints = [{
+			video: {
+				mandatory: {
+					minWidth: w,
+					minHeight: h,
+					minFrameRate: 30,
+					sourceId: sourceIds[0]
+				},
+				optional: [
+				{ minFrameRate: 60 }
+				]
+			},
+			audio: false
+		}, {
+			video: {
+				mandatory: {
+					minWidth: w,
+					minHeight: h,
+					minFrameRate: 30,
+					sourceId: sourceIds[1]
+				},
+				optional: [
+				{ minFrameRate: 60 }
+				]
+			},
+			audio: false
+		}];
+	}
+
+	init();
+// })();
+</script>
+
+</body>
+</html>
