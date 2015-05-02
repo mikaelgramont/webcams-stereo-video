@@ -89,32 +89,19 @@
 		// Could not find two identical cameras. Default to returning whatever's there.
 		var defaultReturn = [];
 		for(entry in videoSources) {
-			defaultReturn.push(videoSources[entry][0]);
+			defaultReturn.push(videoSources[entry].id);
 		}
 		console.log("No two identical cameras were found. Returning default", defaultReturn);
 		return defaultReturn;
 	}
 
 	function gotSources(sourceInfos) {
-		var videoSources = {};
-		for (var i = 0; i !== sourceInfos.length; ++i) {
-			var sourceInfo = sourceInfos[i];
-			var output = [];
-			output.push('id: '+ sourceInfo.id);
-			output.push('kind: '+ sourceInfo.kind);
-			output.push('label: '+ sourceInfo.label);
-			if (sourceInfo.kind === 'video') {
-				if (!videoSources[sourceInfo.label]) {
-					videoSources[sourceInfo.label] = [sourceInfo.id];
-				} else {
-					videoSources[sourceInfo.label].push(sourceInfo.id);
-				}
-			}
-			sourcesLog.value += output.join(' - ') + '\n';
-		}
-
+		var videoSources = sourceInfos.filter(function(source) {
+			return source.kind == 'video';
+		});
+		sourcesLog.value = JSON.stringify(videoSources);
+		console.log("videoSources", videoSources);
 		var sourceIds = getIdenticalVideoSourceIds(videoSources);
-
 
 		constraints = [{
 			video: {
