@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Acquisition</title>
+	<style>
+		video {
+			outline: 1px solid red;
+			min-width: 320px;
+			min-height: 240px;
+			display: inline-block;
+			margin: 15px;
+		}
+		textarea {
+			display: block;
+			height: 200px;
+			width: 700px;
+		}
+	</style>
+</head>
+<body>
+
+<div>
+	<button id="start">Start acquisition</button>
+	<textarea id="sources-log"></textarea>
+</div>
+
+<video id="video1" autoplay></video>
+<video id="video2" autoplay></video>
+
+<script>
+// (function() {
+	navigator.getUserMedia = navigator.getUserMedia ||
+	                         navigator.webkitGetUserMedia ||
+	                         navigator.mozGetUserMedia;
+	if (!navigator.getUserMedia) {
+		throw new Error("getUserMedia not supported");
+	}
+
+	var sourcesLog = document.getElementById('sources-log'),
+		start = document.getElementById('start'),
+		videos = document.getElementsByTagName('video'),
+		videoSources = [],
+		constraints = [];
+
+	function init() {
+		if (typeof MediaStreamTrack === 'undefined' ||
+		    typeof MediaStreamTrack.getSources === 'undefined') {
+		  alert('This browser does not support MediaStreamTrack.\n\nTry Chrome.');
+		} else {
+		  MediaStreamTrack.getSources(gotSources);
+		}
+		start.addEventListener('click', startAcquisition);
+	}
+
+	function startAcquisition() {
+	   navigator.getUserMedia(constraints[0],
+	      function(stream) {
+	         videos[0].src = window.URL.createObjectURL(stream);
+	      },
+	      function(err) {
+	         console.log("The following error occured: " + err.name);
+	      }
+	   );
+	   navigator.getUserMedia(constraints[1],
+	      function(stream) {
+	         videos[1].src = window.URL.createObjectURL(stream);
+	      },
+	      function(err) {
+	         console.log("The following error occured: " + err.name);
+	      }
+	   );
+	}
+
+	function gotSources(sourceInfos) {
+	  for (var i = 0; i !== sourceInfos.length; ++i) {
+	    var sourceInfo = sourceInfos[i];
+	    var output = [];
+	    output.push('id: '+ sourceInfo.id);
+    	output.push('kind: '+ sourceInfo.kind);
+    	output.push('label: '+ sourceInfo.label);
+	    if (sourceInfo.kind === 'video') {
+	      videoSources.push(sourceInfo.id)
+	    }
+	    sourcesLog.value += output.join(' - ') + '\n';
+	  }
+		constraints = [{
+		  video: {
+		    mandatory: {
+		      minWidth: 320,
+		      minHeight: 240,
+		      minFrameRate: 30,
+		      sourceId: videoSources[0]
+		    },
+		    optional: [
+		      { minFrameRate: 60 }
+		    ]
+		  },
+		  audio: false
+		}, {
+		  video: {
+		    mandatory: {
+		      minWidth: 320,
+		      minHeight: 240,
+		      minFrameRate: 30,
+		      sourceId: videoSources[1]
+		    },
+		    optional: [
+		      { minFrameRate: 60 }
+		    ]
+		  },
+		  audio: false
+		}];
+	}
+
+	init();
+// })();
+</script>
+
+</body>
+</html>
