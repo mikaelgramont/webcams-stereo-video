@@ -13,7 +13,7 @@
 		textarea {
 			display: block;
 			height: 200px;
-			width: 700px;
+			width: 750px;
 		}
 	</style>
 </head>
@@ -21,11 +21,12 @@
 
 <div>
 	<button id="start">Start acquisition</button>
+	<button id="stop">Stop acquisition</button>
 	<textarea id="sources-log"></textarea>
 </div>
 
+<video id="video0" autoplay></video>
 <video id="video1" autoplay></video>
-<video id="video2" autoplay></video>
 
 <script>
 // (function() {
@@ -37,8 +38,13 @@
 	}
 
 	var sourcesLog = document.getElementById('sources-log'),
-		start = document.getElementById('start'),
-		videos = document.getElementsByTagName('video'),
+		startEl = document.getElementById('start'),
+		stopEl = document.getElementById('stop'),
+		videos = [
+			document.getElementById('video0'),
+			document.getElementById('video1')
+		],
+		streams = []
 		videoSources = [],
 		constraints = [];
 
@@ -49,26 +55,28 @@
 		} else {
 		  MediaStreamTrack.getSources(gotSources);
 		}
-		start.addEventListener('click', startAcquisition);
+		startEl.addEventListener('click', startAcquisition);
+		stopEl.addEventListener('click', stopAcquisition);
 	}
 
 	function startAcquisition() {
-	   navigator.getUserMedia(constraints[0],
-	      function(stream) {
-	         videos[0].src = window.URL.createObjectURL(stream);
-	      },
-	      function(err) {
-	         console.log("The following error occured: " + err.name);
-	      }
-	   );
-	   navigator.getUserMedia(constraints[1],
-	      function(stream) {
-	         videos[1].src = window.URL.createObjectURL(stream);
-	      },
-	      function(err) {
-	         console.log("The following error occured: " + err.name);
-	      }
-	   );
+		videos.forEach(function(video, index) {
+		   navigator.getUserMedia(constraints[index],
+		      function(stream) {
+		         video.src = window.URL.createObjectURL(stream);
+		         streams[index] = stream;
+		      },
+		      function(err) {
+		         console.log("The following error occured: " + err.name);
+		      }
+		   );
+		});
+	}
+
+	function stopAcquisition() {
+		streams.forEach(function(stream) {
+			stream.stop();
+		});
 	}
 
 	function gotSources(sourceInfos) {
