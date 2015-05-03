@@ -26,6 +26,10 @@
 			height: 100px;
 			width: 750px;
 		}
+
+		.hidden {
+			display: none;
+		}
 	</style>
 </head>
 <body>
@@ -40,11 +44,11 @@
 
 
 <canvas id="merge" class="merged" width="320" height="240"></canvas>
-<div>
+<div class="hidden">
 	<video id="video0" autoplay></video>
 	<video id="video1" autoplay></video>
-	<canvas id="canvas0" width="240" height="320"></canvas>
-	<canvas id="canvas1" width="240" height="320"></canvas>
+	<canvas id="canvas0"></canvas>
+	<canvas id="canvas1"></canvas>
 </div>
 
 <script>
@@ -75,14 +79,24 @@
 			document.getElementById('canvas0'),
 			document.getElementById('canvas1')
 		],
-		contexts = [
-			canvases[0].getContext('2d'),
-			canvases[1].getContext('2d'),
-		],
+		contexts = [],
 		streams = [],
 		constraints = [];
 	
 	function init() {
+		canvases[0].height = w;
+		canvases[0].width = h;
+		canvases[1].height = w;
+		canvases[1].width = h;
+
+		contexts = [
+			canvases[0].getContext('2d'),
+			canvases[1].getContext('2d'),
+		];
+
+		updateCanvas(contexts[1], 90, w, h, 8/9);
+
+
 		if (typeof MediaStreamTrack === 'undefined' ||
 		    typeof MediaStreamTrack.getSources === 'undefined') {
 		  alert('This browser does not support MediaStreamTrack.\n\nTry Chrome.');
@@ -128,6 +142,15 @@
 		isMerging = false;
 		cancelAnimationFrame(rafId);
 		rafId = null
+	}
+
+	function updateCanvas(ctx, angleDeg, width, height, zoom) {
+	    ctx.setTransform(1, 0, 0, 1, 0, 0);
+	    ctx.clearRect(0, 0, width, height);
+	    ctx.translate(width * 0.5, height * 0.5);
+	    ctx.rotate(angleDeg * Math.PI / 180);
+	    ctx.scale(zoom, zoom);
+	    ctx.translate(-width * 0.5, -height * 0.5);
 	}
 
 	function onFrame() {
