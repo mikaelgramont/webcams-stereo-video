@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Emitter</title>
+	<!--
+		Open two tabs on the computer with two cameras, one for each emitting camera, passing ?camIndex=0 or 1 in either.
+		Next open the page on the phone with ?viewer=1
+
+	-->
+	<script src='https://static.opentok.com/v2/js/opentok.min.js'></script>	
+	<style>
+		.viewer {
+			margin: 0;
+			height: 100%;
+		}
+		.viewer .OT_root {
+			display: inline-block;
+			width: 50% !important;
+			height: 100% !important;
+
+		}
+		.viewer .OT_publisher {
+			display: none;
+		}
+		.viewer .OT_widget-container {
+			/* Apply scaleX and scaleY on the fly, rotate in the right direction with :last-child*/
+			transform: rotateZ(90deg);
+		}
+	</style>
+</head>
+<body>
+
+<textarea id="sources-log" style="display:none"></textarea>
+
+<script>
+	var apiKey = 45226912;
+	var sessionId = "2_MX40NTIyNjkxMn5-MTQzMDYzMTM3MjE3Mn5RRERiR3gvM0tkM3dKOHdPd0VZM3pjNWF-fg";
+	var token = "T1==cGFydG5lcl9pZD00NTIyNjkxMiZzaWc9M2E2ZmJmZDQwNmE5MjFmMDVkMjMwNjcyZDAzYzZhM2M5Mjc0MWRhOTpyb2xlPXB1Ymxpc2hlciZzZXNzaW9uX2lkPTJfTVg0ME5USXlOamt4TW41LU1UUXpNRFl6TVRNM01qRTNNbjVSUkVSaVIzZ3ZNMHRrTTNkS09IZFBkMFZaTTNwak5XRi1mZyZjcmVhdGVfdGltZT0xNDMwNjMxMzg5Jm5vbmNlPTAuNDI1MDMzNjY1MzY4NjU3ODM=";
+	var sourcesLog = document.getElementById('sources-log'),
+		sourceIds = [];
+	var isViewer = !!queryString('viewer');
+	if (isViewer) {
+		document.body.classList.add('viewer');
+	}
+
+	function init() {
+		setHeight();
+
+		if (typeof MediaStreamTrack === 'undefined' ||
+		    typeof MediaStreamTrack.getSources === 'undefined') {
+		  alert('This browser does not support MediaStreamTrack.\n\nTry Chrome.');
+			return;
+		} else {
+		  MediaStreamTrack.getSources(gotSources);
+		}
+
+		var session = OT.initSession(apiKey, sessionId);
+ 
+		session.on("streamCreated", function(event) {
+			session.subscribe(event.stream);
+		});
+
+		session.connect(token, function(error) {
+			var cameraIndex = queryString('camIndex');
+			var pubOptions = {
+			    videoSource: sourceIds[cameraIndex]
+			};
+			console.log("Publishing camera", cameraIndex, pubOptions);
+			var publisher = OT.initPublisher(null, pubOptions, function(error) {
+				console.log("OT.initPublisher error: ", error);
+			});
+			session.publish(publisher);
+		});
+
+		window.addEventListener('resize', setHeight);
+	}
+
+	// Returns an array of the two identical webcam ids
+	function getIdenticalVideoSourceIds(videoSources) {
+		for(entry in videoSources) {
+			if (entry.length == 2) {
+				return entry;
+			}
+		}
+
+		// Could not find two identical cameras. Default to returning whatever's there.
+		var defaultReturn = [];
+		for(entry in videoSources) {
+			defaultReturn.push(videoSources[entry].id);
+		}
+		console.log("No two identical cameras were found. Returning default", defaultReturn);
+		return defaultReturn;
+	}
+
+	function gotSources(sourceInfos) {
+		var videoSources = sourceInfos.filter(function(source) {
+			return source.kind == 'video';
+		});
+		sourcesLog.value = JSON.stringify(videoSources);
+		console.log("videoSources", videoSources);
+		sourceIds = getIdenticalVideoSourceIds(videoSources);
+	}
+
+	function queryString(key) {
+	    var url = window.location.href;
+	    keysValues = url.split(/[\?&]+/);
+	    for (i = 0; i < keysValues.length; i++) {
+	        keyValue = keysValues[i].split("=");
+	        if (keyValue[0] == key) {
+	            return keyValue[1];
+	        }
+	    }
+	    return null;
+	}
+	function setHeight() {
+		document.body.style.height = window.innerHeight + 'px';
+	}
+	init();
+</script>
+
+</body>
+</html>
