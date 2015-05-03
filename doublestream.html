@@ -30,11 +30,22 @@
 		.viewer .flip-cam {
 			transform: rotateZ(180deg);	
 		}
+
+		#fullscreen {
+			margin: 20px;
+			padding: 20px;
+		}
+		.hidden {
+			display: none;
+		}
 	</style>
 </head>
 <body>
 
 <textarea id="sources-log" style="display:none"></textarea>
+<div>
+	<button id="fullscreen">Fullscreen</button>
+</div>
 
 <script>
 	var apiKey = 45226912;
@@ -48,6 +59,9 @@
 	} else {
 		document.title = 'Camera ' + (parseInt(queryString('camIndex'), 10) + 1);
 	}
+
+	var fullscreenEl = document.getElementById('fullscreen')
+	fullscreenEl.addEventListener('click', goFullScreen);
 
 	function init() {
 		setHeight();
@@ -69,7 +83,8 @@
 		session.connect(token, function(error) {
 			var cameraIndex = queryString('camIndex');
 			var pubOptions = {
-			    videoSource: sourceIds[cameraIndex]
+			    videoSource: sourceIds[cameraIndex],
+			    resolution: '1280x720'
 			};
 			console.log("Publishing camera", cameraIndex, pubOptions);
 			var publisher = OT.initPublisher(null, pubOptions, function(error) {
@@ -78,13 +93,21 @@
 			session.publish(publisher);
 		});
 
-		setTimeout(function() {
-			// Surely we can determine when to do this better than by using a setTimeout.
-			var firstCamEl = document.getElementsByClassName('OT_subscriber')[0];
-			firstCamEl.classList.add('flip-cam');
-		}, 1000);
-
 		window.addEventListener('resize', setHeight);
+	}
+
+	function goFullScreen(e) {
+		fullscreenEl.classList.add('hidden');
+		var elem = document.documentElement;
+		if (elem.requestFullscreen) {
+		  elem.requestFullscreen();
+		} else if (elem.msRequestFullscreen) {
+		  elem.msRequestFullscreen();
+		} else if (elem.mozRequestFullScreen) {
+		  elem.mozRequestFullScreen();
+		} else if (elem.webkitRequestFullscreen) {
+		  elem.webkitRequestFullscreen();
+		}
 	}
 
 	// Returns an array of the two identical webcam ids
@@ -127,7 +150,9 @@
 	function setHeight() {
 		document.body.style.height = window.innerHeight + 'px';
 	}
-	init();
+	setTimeout(function() {
+		init();
+	}, 2000);
 </script>
 
 </body>
