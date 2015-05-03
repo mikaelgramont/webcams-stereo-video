@@ -32,8 +32,12 @@
 		}
 
 		#fullscreen {
+			display: none;
 			margin: 20px;
 			padding: 20px;
+		}
+		.viewer #fullscreen {
+			display: block;
 		}
 		.hidden {
 			display: none;
@@ -43,9 +47,7 @@
 <body>
 
 <textarea id="sources-log" style="display:none"></textarea>
-<div>
-	<button id="fullscreen">Fullscreen</button>
-</div>
+<button id="fullscreen">Fullscreen</button>
 
 <script>
 	var apiKey = 45226912;
