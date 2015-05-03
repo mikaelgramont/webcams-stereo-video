@@ -17,8 +17,6 @@
 			outline: 1px solid blue;
 		}
 		canvas.merged {
-			width: 320px;
-			height: 240px;
 			outline: 1px solid green;
 		}
 		textarea {
@@ -33,17 +31,18 @@
 	</style>
 </head>
 <body>
-
+<a href="acquisition.html">Acquisition</a>
 <div>
 	<button id="start-acq">Start acquisition</button>
 	<button id="stop-acq">Stop acquisition</button>
 	<button id="start-merge">Start merging</button>
 	<button id="stop-merge">Stop merging</button>
+	<button id="switch-cameras">Switch cameras</button>
 	<textarea id="sources-log"></textarea>
 </div>
 
 
-<canvas id="merge" class="merged" width="320" height="240"></canvas>
+<canvas id="merge" class="merged"></canvas>
 <div class="hidden">
 	<video id="video0" autoplay></video>
 	<video id="video1" autoplay></video>
@@ -60,15 +59,18 @@
 		throw new Error("getUserMedia not supported");
 	}
 
-	var w = 320,
-		h = 240,
+	var w = 1280,
+		h = 720,
 		sourcesLog = document.getElementById('sources-log'),
 		startAcqEl = document.getElementById('start-acq'),
 		stopAcqEl = document.getElementById('stop-acq'),
 		startMergeEl = document.getElementById('start-merge'),
 		stopMergeEl = document.getElementById('stop-merge'),
+		switchEl = document.getElementById('switch-cameras'),
 		isMerging = false,
 		rafId = null,
+		rotation = 1,
+		scaleRatio = 8/9;
 		merge = document.getElementById('merge'),
 		mergeContext = merge.getContext('2d'),
 		videos = [
@@ -88,14 +90,16 @@
 		canvases[0].width = h;
 		canvases[1].height = w;
 		canvases[1].width = h;
+		merge.width = w;
+		merge.height = h;
 
 		contexts = [
 			canvases[0].getContext('2d'),
 			canvases[1].getContext('2d'),
 		];
 
-		updateCanvas(contexts[1], 90, w, h, 8/9);
-
+		updateCanvas(contexts[0], rotation * 90, w, h, scaleRatio);
+		updateCanvas(contexts[1], - rotation * 90, w, h, scaleRatio);
 
 		if (typeof MediaStreamTrack === 'undefined' ||
 		    typeof MediaStreamTrack.getSources === 'undefined') {
@@ -107,6 +111,17 @@
 		stopAcqEl.addEventListener('click', stopAcquisition);
 		startMergeEl.addEventListener('click', startMerging);
 		stopMergeEl.addEventListener('click', stopMerging);
+		switchEl.addEventListener('click', switchCameras);
+	}
+
+	function switchCameras() {
+		rotation *= -1;
+		setupCameras();
+	}
+
+	function setupCameras() {
+		updateCanvas(contexts[0], 90 * rotation, w, h, scaleRatio);
+		updateCanvas(contexts[1], - 90 * rotation, w, h, scaleRatio);
 	}
 
 	function startAcquisition() {
@@ -155,16 +170,10 @@
 
 	function onFrame() {
 		rafId = requestAnimationFrame(onFrame);
-		// console.log('onFrame');
-
-		// TODO: do the merging here:
-		// grab each video, rotate it by the appropriate angle (+/- 90 deg)
-		// paste it into the right spot in the canvas
 		for(var i = 0; i < videos.length; i++) {
 			var angle = Math.pow(-1, i % 2) * Math.PI/2;
 			var offsetX = w / 2;
-            // mergeContext.putImageData(frame, x*(w/tiles+gap), y*(h/tiles+gap), x*w/tiles, y*h/tiles, w/tiles, h/tiles);
-			// contexts[i].rotate(angle);
+
 			var startX = w / 4,
 				targetStartX;
 			if (i == 0) {
@@ -173,21 +182,15 @@
 				targetStartX = w / 2;
 			}
 			contexts[i].drawImage(videos[i], 0, 0, w, h);	
-			// mergeContext.putImageData(frame, startX, 0, targetStartX, 0, w/2, h);
 			if (i == 0){
 				var frame = contexts[i].getImageData(w/4, 0, w*0.75, h);
 				mergeContext.putImageData(frame, 0, 0);
-				// mergeContext.rotate(Math.PI/2);
 			}
 			if (i == 1){
 				var frame = contexts[i].getImageData(w/4, 0, w*0.75, h);
 				mergeContext.putImageData(frame, w/2, 0);
-				// mergeContext.rotate(Math.PI/2);
 			}
-
 		}
-		
-        
 	}
 
 	// Returns an array of the two identical webcam ids
