@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Emitter</title>
+	<title></title>
 	<!--
 		Open two tabs on the computer with two cameras, one for each emitting camera, passing ?camIndex=0 or 1 in either.
 		Next open the page on the phone with ?viewer=1
@@ -26,6 +26,10 @@
 			/* Apply scaleX and scaleY on the fly, rotate in the right direction with :last-child*/
 			transform: rotateZ(90deg);
 		}
+
+		.viewer .flip-cam {
+			transform: rotateZ(180deg);	
+		}
 	</style>
 </head>
 <body>
@@ -41,6 +45,8 @@
 	var isViewer = !!queryString('viewer');
 	if (isViewer) {
 		document.body.classList.add('viewer');
+	} else {
+		document.title = 'Camera ' + (parseInt(queryString('camIndex'), 10) + 1);
 	}
 
 	function init() {
@@ -71,6 +77,12 @@
 			});
 			session.publish(publisher);
 		});
+
+		setTimeout(function() {
+			// Surely we can determine when to do this better than by using a setTimeout.
+			var firstCamEl = document.getElementsByClassName('OT_subscriber')[0];
+			firstCamEl.classList.add('flip-cam');
+		}, 1000);
 
 		window.addEventListener('resize', setHeight);
 	}
